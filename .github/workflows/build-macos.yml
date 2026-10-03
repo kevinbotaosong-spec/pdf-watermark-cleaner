@@ -1,0 +1,67 @@
+name: Build macOS App
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate app icon
+        run: |
+          python scripts/make_icon.py
+          iconutil -c icns assets/AppIcon.iconset -o assets/AppIcon.icns
+
+      - name: Build macOS app
+        run: |
+          pyinstaller \
+            --noconfirm \
+            --clean \
+            --windowed \
+            --name "PDF 水印清理" \
+            --icon assets/AppIcon.icns \
+            app.py
+
+      - name: Package app
+        run: |
+          ditto -c -k --keepParent \
+            "dist/PDF 水印清理.app" \
+            "PDF-Watermark-Cleaner-macOS.zip"
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDF-Watermark-Cleaner-macOS
+          path: PDF-Watermark-Cleaner-macOS.zip
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            PDF-Watermark-Cleaner-macOS.zip \
+            --title "${{ github.ref_name }}" \
+            --generate-notes
