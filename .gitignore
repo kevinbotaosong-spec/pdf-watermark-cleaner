@@ -1,0 +1,8 @@
+.venv/
+build/
+dist/
+*.spec
+__pycache__/
+.DS_Store
+assets/AppIcon.icns
+assets/AppIcon.iconset/
