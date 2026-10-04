@@ -56,12 +56,20 @@ jobs:
           name: PDF-Watermark-Cleaner-macOS
           path: PDF-Watermark-Cleaner-macOS.zip
 
-      - name: Publish GitHub Release
+      - name: Publish macOS asset to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            PDF-Watermark-Cleaner-macOS.zip \
-            --title "${{ github.ref_name }}" \
-            --generate-notes
+          tag="${{ github.ref_name }}"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" \
+              PDF-Watermark-Cleaner-macOS.zip \
+              --clobber
+          else
+            gh release create "$tag" \
+              PDF-Watermark-Cleaner-macOS.zip \
+              --title "PDF Watermark Cleaner $tag" \
+              --generate-notes
+          fi
