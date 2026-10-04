@@ -4,7 +4,12 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
@@ -53,3 +58,21 @@ jobs:
         with:
           name: PDF-Watermark-Cleaner-Windows
           path: PDF-Watermark-Cleaner-Windows.zip
+
+      - name: Publish Windows asset to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ github.ref_name }}"
+          echo "Waiting for release $tag to exist..."
+          for i in {1..60}; do
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release upload "$tag" PDF-Watermark-Cleaner-Windows.zip --clobber
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Release $tag was not created in time."
+          exit 1
